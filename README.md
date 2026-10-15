@@ -1,13 +1,11 @@
 # Saeid Tayebi — portfolio
 
-Scientific modeling, applied machine learning, and interactive research tools.
+Scientific modeling, applied machine learning, and research products.
 
 Website: https://saeid-tayebi.github.io/
 
-The public Interactive Lab runs the original Python implementations in a browser Web Worker using Pyodide. CSV and Excel files remain in the visitor’s browser. The first analysis downloads Python and scientific packages; later analyses reuse the runtime. Small-data and execution-time limits apply.
+The Interactive Lab runs original public Python implementations in a browser Web Worker using Pyodide. CSV and Excel inputs stay in the visitor's browser. Uploads support up to 1,000 rows, 20 file columns, and 2 MB. A typed preview shows the first 50 rows and selected column roles; analysis processes every accepted row. Model requirements still apply. Calculation time is bounded to 45 seconds after the initial runtime download.
 
-The bundled source archive preserves upstream notices and public examples. Project repositories remain the reference for larger analyses. PREP implementation and confidential application source/data are excluded.
+This site adds no analytics, accounts or application-level file storage. GitHub Pages serves the site. Software downloads from jsDelivr and Python package distribution services receive ordinary network metadata; selected file contents are not included in those requests. External links have their own practices.
 
-## Data and third-party requests
-
-The site does not add analytics, accounts, or application-level file storage. GitHub Pages serves website files. The tool runtime loads software from jsDelivr and Python package distribution services, which receive ordinary network request metadata. Selected CSV/Excel content is processed in browser memory and is not included in those requests. Linked external sites have their own practices.
+Public project sources and upstream notices are bundled for execution and inspection. PREP implementation and confidential application source/data are excluded. Original repositories remain the reference for unrestricted local analyses.

@@ -6,7 +6,7 @@ async function initialize(){
  python=await loadPyodide({indexURL:'https://cdn.jsdelivr.net/pyodide/v0.26.4/full/'});
  await python.loadPackage(['numpy','scipy','scikit-learn','matplotlib','micropip']);
  await python.runPythonAsync("import micropip\nawait micropip.install(['plotly==5.24.1', 'openpyxl==3.1.5', 'defusedxml==0.7.1'])");
- const response=await fetch('source.zip');if(!response.ok)throw new Error('The Python source bundle could not be loaded.');
+ const response=await fetch('source.zip?v=66dc5d968f62');if(!response.ok)throw new Error('The Python source bundle could not be loaded.');
  python.unpackArchive(await response.arrayBuffer(),'zip',{extractDir:'/app'});
  await python.runPythonAsync("import sys, os\nos.environ['MPLBACKEND']='Agg'\nsys.path.insert(0, '/app')\nimport runner\nimport matplotlib.pyplot\nimport contextlib, io, json, warnings\nfrom uploads import inspect\nfrom uploaded_runs import run_uploaded");
  postMessage({type:'ready'});

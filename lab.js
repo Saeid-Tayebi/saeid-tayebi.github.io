@@ -1,24 +1,15 @@
 'use strict';
-const TOOLS = {
- missing:{repo:'HandiMissingDataEstimaor',name:'Recover missing values',short:'Missing-data estimation',category:'DATA PREPARATION',description:'Give incomplete data a second look. Explore PCA-based reconstruction and compare estimates against values deliberately hidden from the model.',question:'Can the relationships between variables help recover measurements that are missing?',example:'example_usage.py',source:'PCAFill/pca_fill.py',fields:[['missing','Values to hide',[[10,'10%'],[20,'20%'],[25,'25%']],20,'A complete calibration block is retained.'],['seed','Example seed',[[42,'42 · default example'],[7,'7 · alternative'],[73,'73 · alternative']],42,'Same synthetic construction, a different sample.']],empty:'Compare hidden-value estimates with their known values and a simple mean-fill baseline.'},
- ordering:{repo:'SelectivePCA-Data-Reordering-Tool',name:'Find the information in your variables',short:'Variable ordering',category:'DATA UNDERSTANDING',description:'Explore which variables add information and which largely repeat what is already represented. Start with the exact dataset in the repository example.',question:'How much of this dataset can a smaller set of variables represent?',example:'example_usage.py',source:'spca/spca.py',fields:[['keep','Variables to retain',[[1,'1 variable'],[2,'2 variables'],[3,'3 variables'],[4,'4 variables'],[5,'All 5 variables']],3,'Changes the retained prefix of the source’s computed order.']],empty:'Inspect the variable ranking, incremental variance, and cumulative coverage.'},
- propensity:{repo:'AutoPropensity',name:'Understand how actions were assigned',short:'Propensity modeling',category:'DECISION EVALUATION',description:'Fit a propensity model and inspect the support for observed actions. Follow a bounded version of the repository’s tune → fit → score example.',question:'Were observed actions plausible given the state, or supported by very little historical evidence?',example:'usecase_basic.py',source:'auto_propensity/builder.py',fields:[['samples','Example observations',[[120,'120 observations'],[200,'200 observations'],[300,'300 observations']],120,'4 state variables; a separate 25% held-out test set.'],['action','Action space',[['discrete','Discrete · 3 actions'],['continuous','Continuous · 1 action']], 'discrete','Parametric search only; no neural networks or nonparametric search.']],empty:'See the distribution of held-out action scores and inspect the selected model configuration.'},
- pca:{repo:'pca_nipals',name:'Look inside multivariate data',short:'PCA exploration',category:'MULTIVARIATE MODELING',description:'Project several measurements into a smaller model space. Explore scores and the variation retained by your NIPALS PCA implementation.',question:'What changes when several input variables are represented using only a few components?',example:'example_usage.py',source:'pca_nipals/pca.py',fields:[['components','PCA components',[[1,'1 component'],[2,'2 components'],[3,'3 components']],2,'30 calibration observations, 4 inputs, 10 test observations.'],['seed','Example seed',[[42,'42 · default example'],[7,'7 · alternative'],[73,'73 · alternative']],42,'Reproducible synthetic observations.']],empty:'Explore score-space structure, retained variance, and held-out reconstruction error.'},
- pls:{repo:'pls_nipals',name:'Connect measurements to outcomes',short:'PLS prediction',category:'SUPERVISED MODELING',description:'Fit a NIPALS partial least squares model, then inspect its predictions on separate example observations.',question:'How well can a compact model connect input measurements with an output of interest?',example:'README.md',source:'pls_nipals/pls.py',fields:[['components','PLS components',[[1,'1 component'],[2,'2 components'],[3,'3 components']],2,'30 calibration observations, 4 inputs and 2 outputs.'],['seed','Example seed',[[42,'42 · default example'],[7,'7 · alternative'],[73,'73 · alternative']],42,'The README’s synthetic linear data construction.']],empty:'Compare predicted and known held-out outputs, then inspect prediction residuals.'},
- clusters:{repo:'KMeansPro',name:'Explore groups in a dataset',short:'Clustering',category:'PATTERN EXPLORATION',description:'Partition example observations using the repository’s K-means implementation. Explore the effect of cluster count and initialization repeats.',question:'How does the grouping of the same observations change when the clustering settings change?',example:'code_executor.py',source:'kmeansPro.py',fields:[['clusters','Requested clusters',[[2,'2 clusters'],[3,'3 clusters'],[4,'4 clusters']],3,'60 synthetic observations in 2 dimensions.'],['restarts','Initialization repeats',[[3,'3 repeats'],[5,'5 repeats'],[10,'10 repeats']],3,'Bounded repeat search using the original fitting routine.']],empty:'See cluster membership, group sizes, and the source routine’s distance-to-center objective.'},
- nullspace:{repo:'NullSpaceExplorer',name:'Find different inputs for the same target',short:'Null-space exploration',category:'MODEL INVERSION',description:'Explore alternative input combinations that retain a desired output in a fitted model. Make a mathematical relationship visible.',question:'Can different input settings lead to the same modeled outcome?',example:'example_usage.py',source:'nspls/null_space.py',fields:[['points','Alternatives to display',[[10,'Up to 10 alternatives'],[20,'Up to 20 alternatives'],[30,'Up to 30 alternatives']],20,'The source samples candidates internally; displayed results are capped.'],['seed','Example seed',[[42,'42 · default example'],[7,'7 · alternative'],[73,'73 · alternative']],42,'30 calibration observations, 4 inputs, 2 outputs.']],empty:'Inspect alternative input combinations and their deviations from the modeled target.'},
- clusterpls:{repo:'cluster-based-pls',name:'Explore local predictive relationships',short:'Cluster-based PLS',category:'CLUSTERED REGRESSION',description:'Combine input-space clustering with PLS models. Compare predictions against a single global model on the same synthetic test observations.',question:'What changes when observations are modeled in groups rather than with one global relationship?',example:'CB_pls_executer.py',source:'CB_PLS.py',fields:[['clusters','Requested input clusters',[[1,'1 · global model'],[2,'2 input clusters'],[3,'3 input clusters']],2,'60 calibration observations, 3 inputs and 3 outputs.'],['seed','Example seed',[[42,'42 · default example'],[7,'7 · alternative'],[73,'73 · alternative']],42,'3 initialization repeats; the source may reduce cluster count.']],empty:'Compare held-out predictions from clustered and single-model PLS. This is a code example, not a replay of the published microgel study.'}
-};
+
 const $=id=>document.getElementById(id);
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const palette=['#2b7157','#ca8050','#7888b6','#b1ad57'];
-let current='missing',last=null,controller=null,uploadFile=null,uploadInfo=null;
-const UPLOAD_CAPS={missing:[60,6],ordering:[60,6],propensity:[120,5],pca:[80,6],pls:[80,8],clusters:[60,4],nullspace:[50,6],clusterpls:[80,6]};
+let current='missing',last=null,controller=null,uploadFile=null,uploadInfo=null,resultPage=0;
+
 const fmt=v=>typeof v==='number'?(v===0?'0':Math.abs(v)<.0001?v.toExponential(2):Number.isInteger(v)?String(v):v.toFixed(4)):v==null?'Unavailable':String(v);
 function repoUrl(t){return 'https://github.com/Saeid-Tayebi/'+TOOLS[t].repo;}
 function settings(){return Object.fromEntries(TOOLS[current].fields.map(([key,,options])=>{const val=$('input-'+key).value;return [key,typeof options[0][0]==='number'?Number(val):val];}));}
 function selectTool(key){
- if(!TOOLS[key])key='missing';if(controller)controller.abort();current=key;last=null;resetUpload();
+ if(!TOOLS[key])key='missing';if(controller)controller.abort();controller=null;current=key;last=null;$('cancel-run').hidden=true;resetUpload();
  document.querySelector('.back').href='./#tool-'+key;
  const t=TOOLS[key];document.title=t.short+' | Saeid Tayebi Interactive Lab';
  history.replaceState(null,'','?tool='+encodeURIComponent(key));
@@ -26,13 +17,13 @@ function selectTool(key){
  for(const [id,value] of Object.entries({title:t.name,category:t.category,breadcrumb:t.short,description:t.description,question:t.question,'empty-description':t.empty}))$(id).textContent=value;
  $('repo-link').href=repoUrl(key);$('full-link').href=repoUrl(key);$('example-link').href=repoUrl(key)+'/blob/main/'+t.example;
  $('fields').innerHTML=t.fields.map(([key,label,options,def,hint])=>`<label class="field" for="input-${key}"><span class="field-label">${esc(label)}</span><select id="input-${key}" name="${key}" aria-describedby="hint-${key}">${options.map(([v,l])=>`<option value="${v}" ${v===def?'selected':''}>${esc(l)}</option>`).join('')}</select><small id="hint-${key}">${esc(hint)}</small></label>`).join('');
- $('fields').querySelectorAll('select').forEach(el=>el.addEventListener('change',()=>{if(last){$('run-state').textContent='Settings changed';$('notice').textContent='Settings changed. Run again to update the displayed results.';}}));
+ $('fields').querySelectorAll('select').forEach(el=>el.addEventListener('change',()=>{if(controller){invalidateResults();$('run').disabled=false;if($('data-mode').value==='upload')renderDataPreview();}if(last){$('run-state').textContent='Settings changed';$('notice').textContent='Settings changed. Run again to update the displayed results.';}}));
  $('empty').hidden=false;$('results').hidden=true;$('notice').textContent='';$('run-state').textContent='Ready to run';$('run').disabled=false;$('run').innerHTML=($('data-mode').value==='upload'?'Run on my data':'Run example')+' <span aria-hidden="true">↗</span>';
  $('snippet').textContent='Run an example to inspect the exact call.';$('implementation').hidden=true;$('source-toggle').setAttribute('aria-expanded','false');$('source-toggle').textContent='Read implementation';
 }
 function range(vals){let lo=Math.min(...vals),hi=Math.max(...vals);if(lo===hi){const pad=Math.max(Math.abs(lo)*.1,1e-15);lo-=pad;hi+=pad;}const pad=(hi-lo)*.09;return [lo-pad,hi+pad];}
 function svgPlot(c){
- const W=matchMedia('(max-width:740px)').matches?360:520,H=285,L=60,R=18,T=15,B=65,w=W-L-R,h=H-T-B;
+ const W=c.kind==='bar'?Math.max(520,c.values.length*42):520,H=310,L=60,R=18,T=15,B=65,w=W-L-R,h=H-T-B;
  let content='',legend='';
  const text=(x,y,s,anchor='middle',size=10)=>`<text x="${x}" y="${y}" text-anchor="${anchor}" font-size="${size}" fill="#728269">${esc(s)}</text>`;
  if(c.kind==='scatter'){
@@ -49,12 +40,17 @@ function svgPlot(c){
   content+=vals.map((v,i)=>`<rect x="${L+i*bw+bw*.18}" y="${Math.min(sy(v),sy(0))}" width="${bw*.64}" height="${Math.max(1,Math.abs(sy(0)-sy(v)))}" rx="2" fill="${(c.selected?i<c.selected:i===0)?'#2b7157':'#a7bd94'}"><title>${esc(c.labels[i])}: ${fmt(v)}</title></rect>`+text(L+(i+.5)*bw,H-B+18,c.labels[i],'middle',8)).join('');
   content+=`<text transform="translate(15 ${T+h/2}) rotate(-90)" text-anchor="middle" font-size="10" fill="#728269">${esc(c.ylabel)}</text>`;
  }
- return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(c.title)}"><title>${esc(c.title)}</title>${content}</svg>${legend}<p class="plot-note">Hover over a point or bar for its value. Exact results are also available in the result table below.</p>`;
+ return `<div class="plot-scroll"><svg style="${c.kind==='bar'?'min-width:'+W+'px;':''}" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(c.title)}"><title>${esc(c.title)}</title>${content}</svg></div>${legend}<p class="plot-note">Hover over a point or bar for its value. Exact results are also available in the result table below.</p>`;
 }
 function heatmap(c){
- const vals=c.after.flat().filter(Number.isFinite),lo=Math.min(...vals),hi=Math.max(...vals);
- const grid=(data,label)=>`<div><h4>${label}</h4><div class="heat-grid" style="grid-template-columns:repeat(${data[0].length},1fr)">${data.map((row,i)=>row.map((v,j)=>{const a=v===null?.2:.2+.7*(v-lo)/(hi-lo||1);return `<div class="cell ${v===null?'missing':''}" style="background:rgba(36,104,76,${a})" title="Observation ${i+1}, variable ${j+1}: ${v===null?'hidden':fmt(v)}"></div>`;}).join('')).join('')}</div></div>`;
- return `<div class="heatmaps">${grid(c.before,'Before · coral cells are missing')}${grid(c.after,'After · returned by pca_fill()')}</div><p class="heat-label">Rows: ${c.before.length} observations · Columns: ${c.before[0].length} variables · Color intensity: value</p>`;
+ const shown=100,vals=c.after.flat().filter(Number.isFinite),lo=Math.min(...vals),hi=Math.max(...vals);
+ const grid=(all,label)=>{const data=all.slice(0,shown);return `<div><h4>${label}</h4><div class="heat-grid" style="grid-template-columns:repeat(${data[0].length},1fr)">${data.map((row,i)=>row.map((v,j)=>`<div class="cell ${v===null?'missing':''}" style="background:rgba(24,101,97,${v===null?.2:.15+.8*(v-lo)/(hi-lo||1)})" title="Row ${i+1}, column ${j+1}: ${v===null?'missing':fmt(v)}"></div>`).join('')).join('')}</div></div>`;};
+ return `<div class="heatmaps">${grid(c.before,'Before · coral cells are missing')}${grid(c.after,'After · estimated values')}</div><p class="heat-label">Showing ${Math.min(c.before.length,shown)} of ${c.before.length} rows · ${c.before[0].length} columns. Every selected row is processed; this visual is a preview.</p>`;
+}
+function renderResultTable(){
+ if(!last)return;const tab=last.table,size=100,start=resultPage*size,rows=tab.rows.slice(start,start+size);
+ $('table').innerHTML=`<table><caption>Returned values · rows ${start+1}–${start+rows.length} of ${tab.rows.length}</caption><thead><tr>${tab.columns.map(c=>`<th scope="col">${esc(c)}</th>`).join('')}</tr></thead><tbody>${rows.map(row=>`<tr>${row.map(v=>`<td>${esc(fmt(v))}</td>`).join('')}</tr>`).join('')}</tbody></table><div class="table-pagination"><button type="button" id="result-prev" ${resultPage===0?'disabled':''}>Previous rows</button><span>Page ${resultPage+1} of ${Math.max(1,Math.ceil(tab.rows.length/size))}</span><button type="button" id="result-next" ${start+size>=tab.rows.length?'disabled':''}>Next rows</button></div>`;
+ $('result-prev').onclick=()=>{resultPage--;renderResultTable();};$('result-next').onclick=()=>{resultPage++;renderResultTable();};
 }
 function render(data){
  last=data;$('empty').hidden=true;$('results').hidden=false;
@@ -63,15 +59,14 @@ function render(data){
  $('insight').textContent=data.insight;$('dataset').textContent=data.dataset;$('snippet').textContent=data.snippet;
  $('result-settings').textContent=(data.uploaded?'YOUR DATA · ':'')+Object.entries(data.settings).map(([k,v])=>k+': '+v).join(' · ')+' · '+(data.cached?'cached run':data.seconds+' seconds');
  $('configuration').textContent=data.config?JSON.stringify(data.config,null,2):'';
- const tab=data.table;
- $('table').innerHTML=`<table><caption class="overline">Values returned by the example</caption><thead><tr>${tab.columns.map(c=>`<th scope="col">${esc(c)}</th>`).join('')}</tr></thead><tbody>${tab.rows.map(row=>`<tr>${row.map(v=>`<td>${esc(fmt(v))}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
- $('run-state').textContent='Completed';$('notice').textContent='';
+ resultPage=0;renderResultTable();
+ $('run-state').textContent='Completed';$('notice').textContent='';document.querySelector('.output-heading').scrollIntoView({block:'start',behavior:matchMedia('(prefers-reduced-motion:reduce)').matches?'auto':'smooth'});
 }
 $('tool-nav').innerHTML=Object.entries(TOOLS).map(([key,t],i)=>`<button type="button" data-tool="${key}"><span class="number">${String(i+1).padStart(2,'0')}</span><span class="nav-title">${esc(t.short)}<small>${esc(t.repo)}</small></span></button>`).join('');
 $('tool-nav').querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>selectTool(b.dataset.tool)));
 $('controls').addEventListener('submit',async e=>{
  e.preventDefault();const tool=current;controller=new AbortController();const activeController=controller;
- $('run').disabled=true;$('run').textContent='Running original code…';$('run-state').textContent='Computing';$('notice').textContent='Running the public Python implementation on '+($('data-mode').value==='upload'?'your selected data locally in this browser…':'the example dataset…');
+ $('run').disabled=true;$('cancel-run').hidden=false;$('run').textContent='Running original code…';$('run-state').textContent='Computing';$('notice').textContent='Running the public Python implementation on '+($('data-mode').value==='upload'?'your uploaded data…':'the example dataset…');
  try{
   const payload={tool,params:settings()};
   if($('data-mode').value==='upload'){
@@ -79,11 +74,12 @@ $('controls').addEventListener('submit',async e=>{
    payload.upload=uploadFile;payload.selection=columnSelection();
   }
   const response=await labFetch('/api/run',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload),signal:activeController.signal});
-  if(!response.headers.get('content-type')?.includes('application/json'))throw new Error('The Python service is not connected at this address. Open the full local preview on port 8780; static GitHub Pages alone cannot execute Python.');
+  if(!response.headers.get('content-type')?.includes('application/json'))throw new Error('The analysis connection is unavailable. Reload this page and try again.');
   const data=await response.json();if(!response.ok)throw new Error(data.error||'The example could not complete.');if(current===tool)render(data);
  }catch(error){if(error.name!=='AbortError'&&current===tool){$('notice').textContent=error.message;$('run-state').textContent='Could not complete';}}
- finally{if(current===tool&&controller===activeController){$('run').disabled=false;$('run').innerHTML=($('data-mode').value==='upload'?'Run on my data':'Run example')+' <span aria-hidden="true">↗</span>';}}
+ finally{if(current===tool&&controller===activeController){controller=null;$('cancel-run').hidden=true;$('run').disabled=false;if($('data-mode').value==='upload')renderDataPreview();$('run').innerHTML=($('data-mode').value==='upload'?'Run on my data':'Run example')+' <span aria-hidden="true">↗</span>';}}
 });
+$('cancel-run').addEventListener('click',()=>{controller?.abort();$('cancel-run').hidden=true;$('notice').textContent='Analysis cancelled. You can adjust your selection and run again.';$('run-state').textContent='Cancelled';});
 $('source-toggle').addEventListener('click',async()=>{
  const tool=current;const opening=$('implementation').hidden;
  $('implementation').hidden=!opening;$('source-toggle').setAttribute('aria-expanded',String(opening));$('source-toggle').textContent=opening?'Hide implementation':'Read implementation';
@@ -92,21 +88,24 @@ $('source-toggle').addEventListener('click',async()=>{
  try{const response=await labFetch('/api/source?tool='+encodeURIComponent(tool));if(!response.ok)throw new Error();const data=await response.json();if(current===tool)$('source-code').textContent=data.source;}catch{if(current===tool)$('source-code').textContent='Source preview is unavailable here. Use the View on GitHub link above.';}
 });
 function invalidateResults(){
+ if(controller){controller.abort();controller=null;$('cancel-run').hidden=true;$('inspect-file').disabled=false;}
  last=null;$('results').hidden=true;$('empty').hidden=false;$('notice').textContent='';$('run-state').textContent='Ready to run';
 }
 function resetUpload(){
- uploadFile=null;uploadInfo=null;$('data-mode').value='example';$('upload-panel').hidden=true;$('upload-file').value='';$('column-select').innerHTML='';$('file-status').textContent='';$('inspect-file').disabled=false;
+ uploadFile=null;uploadInfo=null;$('data-preview').hidden=true;$('preview-table').innerHTML='';$('data-mode').value='example';$('upload-panel').hidden=true;$('upload-file').value='';$('column-select').innerHTML='';$('file-status').textContent='';$('inspect-file').disabled=false;
 }
 function applyMode(){
  const uploading=$('data-mode').value==='upload';$('upload-panel').hidden=!uploading;
  $('upload-panel').querySelectorAll('input').forEach(el=>{el.disabled=!uploading;});
- const [rows,cols]=UPLOAD_CAPS[current];$('upload-limit').textContent=`Up to 48 KB · ${rows} rows · ${cols} file columns. Header row required. Excel: first sheet, values only.`;
+ $('upload-limit').textContent='Up to 2 MB · 1,000 data rows · 20 columns. Include a header row. Excel: first sheet, values only.';
+ $('data-preview').hidden=!uploading||!uploadInfo;
  TOOLS[current].fields.forEach(([key,,options,def,hint])=>{
-  const label=$('input-'+key).closest('label');label.hidden=uploading&&['seed','samples','missing'].includes(key);
+  const el=$('input-'+key);if(!uploading){el.innerHTML=options.map(([v,l])=>`<option value="${v}" ${v===def?'selected':''}>${esc(l)}</option>`).join('');}
+  const label=el.closest('label');label.hidden=uploading&&['seed','samples','missing'].includes(key);
   label.querySelector('small').textContent=uploading&&key==='components'?'Choose fewer components than selected input columns.':uploading&&key==='clusters'?'Groups are fitted using all selected input columns.':hint;
  });
  $('empty-description').textContent=uploading?'Choose your columns, then run the original code on the uploaded data.':TOOLS[current].empty;
- $('run').innerHTML=(uploading?'Run on my data':'Run example')+' <span aria-hidden="true">↗</span>';invalidateResults();
+ $('run').innerHTML=(uploading?'Run on my data':'Run example')+' <span aria-hidden="true">↗</span>';invalidateResults();if(uploading&&uploadInfo){updateUploadOptions();renderDataPreview();}else $('run').disabled=uploading;
 }
 function columnSelection(){
  const features=[...document.querySelectorAll('input[name="input-column"]:checked')].map(el=>el.value);
@@ -115,10 +114,36 @@ function columnSelection(){
  if(current==='nullspace')selection.target=outputs.map((_,i)=>Number($('target-'+i)?.value));
  return selection;
 }
+function updateUploadOptions(){
+ if(!uploadInfo)return;
+ const n=columnSelection().features.length;
+ for(const key of ['components','keep']){const select=$('input-'+key);if(!select)continue;
+ const previous=Number(select.value),max=key==='keep'?n:Math.max(1,Math.min(n-1,uploadInfo.rows-2));
+ select.innerHTML=Array.from({length:max},(_,i)=>`<option value="${i+1}">${i+1} ${key==='keep'?'variable':'component'}${i?'s':''}</option>`).join('');select.value=String(Math.max(1,Math.min(previous,max)));
+ }
+}
+function renderDataPreview(){
+ if(!uploadInfo){$('data-preview').hidden=true;return;}
+ $('data-preview').hidden=$('data-mode').value!=='upload';
+ const selection=columnSelection(),features=new Set(selection.features),outputs=new Set(selection.outputs);
+ const cols=uploadInfo.columns,rows=uploadInfo.preview;
+ const role=c=>features.has(c.name)?'input':outputs.has(c.name)?'output':'excluded';
+ $('preview-summary').textContent=`${uploadFile.name} · ${uploadInfo.rows.toLocaleString()} rows × ${cols.length} columns`;
+ $('preview-table').innerHTML=`<table><caption>First ${rows.length} rows. All ${uploadInfo.rows.toLocaleString()} rows in selected columns are used for analysis.</caption><thead><tr><th scope="col" class="row-index">Row</th>${cols.map(c=>`<th scope="col" class="preview-${role(c)}">${esc(c.name)}<small>${role(c)==='input'?'Input':role(c)==='output'?(current==='propensity'?'Action':'Output'):'Excluded'} · ${esc(c.kind|| (c.numeric?'numeric':'text'))}${c.missing?' · '+c.missing+' missing':''}</small></th>`).join('')}</tr></thead><tbody>${rows.map((row,i)=>`<tr><th scope="row" class="row-index">${i+1}</th>${row.map((v,j)=>{const state=uploadInfo.previewStates?.[i]?.[j],missing=state==='missing'||v===null;return `<td class="preview-${role(cols[j])} ${missing?'preview-missing':''}" title="${esc(cols[j].name)} · ${missing?'Missing value':role(cols[j])}">${missing?'<span aria-label="Missing value">—</span>':esc(typeof v==='number'?fmt(v):v)}</td>`;}).join('')}</tr>`).join('')}</tbody></table>`;
+ let problem='';if(uploadInfo.rows<(current==='propensity'?40:20))problem='Provide at least '+(current==='propensity'?40:20)+' data rows.';if(features.size<2)problem='Choose at least two numeric input columns.';
+ if(['pls','nullspace','clusterpls','propensity'].includes(current)&&!outputs.size)problem='Choose an output or action column.';
+ if(outputs.size>(current==='propensity'?1:2))problem='Choose '+(current==='propensity'?'one action column.':'at most two output columns.');
+ const selected=cols.filter(c=>features.has(c.name));
+ if(current!=='missing'&&selected.some(c=>c.missing))problem='Selected inputs contain missing cells. Exclude those columns or fill them with the missing-data tool first.';
+ if(current==='missing'&&!selected.some(c=>c.missing))problem='Choose input columns with missing cells, or use the built-in reconstruction example.';
+ $('preview-status').textContent=problem||`${uploadInfo.rows.toLocaleString()} rows ready · ${features.size} inputs${outputs.size?' · '+outputs.size+(current==='propensity'?' action':' outputs'):''} · ${cols.length-features.size-outputs.size} columns excluded.`;
+ $('preview-status').classList.toggle('needs-attention',!!problem);$('run').disabled=!!problem||!!controller;
+}
 function renderColumns(){
- const numeric=uploadInfo.columns.filter(c=>c.numeric),supervised=['pls','propensity','clusterpls','nullspace'].includes(current);
- const defaultOut=supervised?uploadInfo.columns[uploadInfo.columns.length-1].name:null;
- $('column-select').innerHTML=`<fieldset class="column-group"><legend>Input columns · choose 2–6</legend>${numeric.map(c=>`<label class="column-choice"><input type="checkbox" name="input-column" value="${esc(c.name)}" ${c.name!==defaultOut?'checked':''}><span>${esc(c.name)}${c.missing?`<small>${c.missing} missing cells</small>`:''}</span></label>`).join('')}</fieldset>`+(supervised?`<fieldset class="column-group"><legend>${current==='propensity'?'Action column · choose one':'Output columns · choose 1–2'}</legend>${uploadInfo.columns.filter(c=>current==='propensity'||c.numeric).map(c=>`<label class="column-choice"><input type="checkbox" name="output-column" value="${esc(c.name)}" ${c.name===defaultOut?'checked':''}><span>${esc(c.name)}</span></label>`).join('')}</fieldset>`:'')+'<div id="target-fields"></div>';
+ const numeric=uploadInfo.columns.filter(c=>c.numeric&&c.eligible!==false),supervised=['pls','propensity','clusterpls','nullspace'].includes(current);
+ const eligibleOutputs=current==='propensity'?uploadInfo.columns:numeric;
+ const defaultOut=supervised?eligibleOutputs[eligibleOutputs.length-1]?.name:null;
+ $('column-select').innerHTML=`<fieldset class="column-group"><legend>Input columns · choose 2–20</legend>${numeric.map(c=>`<label class="column-choice"><input type="checkbox" name="input-column" value="${esc(c.name)}" ${c.name!==defaultOut?'checked':''}><span>${esc(c.name)}${c.missing?`<small>${c.missing} missing cells</small>`:''}</span></label>`).join('')}</fieldset>`+(supervised?`<fieldset class="column-group"><legend>${current==='propensity'?'Action column · choose one':'Output columns · choose 1–2'}</legend>${uploadInfo.columns.filter(c=>current==='propensity'||c.numeric).map(c=>`<label class="column-choice"><input type="checkbox" name="output-column" value="${esc(c.name)}" ${c.name===defaultOut?'checked':''}><span>${esc(c.name)}</span></label>`).join('')}</fieldset>`:'')+'<div id="target-fields"></div>';
  const refreshTargets=()=>{
   if(current!=='nullspace')return;
   const chosen=[...document.querySelectorAll('input[name="output-column"]:checked')].map(el=>el.value);
@@ -126,23 +151,24 @@ function renderColumns(){
  };
  $('column-select').querySelectorAll('input').forEach(el=>el.addEventListener('change',()=>{
   if(el.checked){const other=el.name==='output-column'?'input-column':'output-column';for(const c of document.querySelectorAll(`input[name="${other}"]`))if(c.value===el.value)c.checked=false;}
-  refreshTargets();invalidateResults();
- }));refreshTargets();
+  refreshTargets();updateUploadOptions();invalidateResults();renderDataPreview();
+ }));refreshTargets();updateUploadOptions();renderDataPreview();
 }
 $('data-mode').addEventListener('change',applyMode);
-$('upload-file').addEventListener('change',()=>{uploadFile=null;uploadInfo=null;$('column-select').innerHTML='';$('file-status').textContent='';invalidateResults();});
+$('upload-file').addEventListener('change',()=>{uploadFile=null;uploadInfo=null;$('column-select').innerHTML='';$('file-status').textContent='';$('data-preview').hidden=true;invalidateResults();$('run').disabled=true;if($('upload-file').files[0])$('inspect-file').click();});
 $('inspect-file').addEventListener('click',async()=>{
  const tool=current,chosen=$('upload-file').files[0];
  if(!chosen){$('file-status').textContent='Choose a CSV or .xlsx file first.';return;}
- if(chosen.size>48*1024){$('file-status').textContent='File exceeds 48 KB. Use a smaller subset or run the full project from GitHub.';return;}
- $('inspect-file').disabled=true;$('file-status').textContent='Reading file columns…';
+ if(chosen.size>LAB_LIMITS.fileBytes){$('file-status').textContent='File exceeds 2 MB. Use a smaller subset or run the full project from GitHub.';return;}
+ if(controller)controller.abort();controller=new AbortController();const activeInspection=controller;
+ $('inspect-file').disabled=true;$('cancel-run').hidden=false;$('file-status').textContent='Reading file columns…';
  try{
   const content=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(String(reader.result).split(',')[1]);reader.onerror=reject;reader.readAsDataURL(chosen);});
   const file={name:chosen.name,content};
-  const response=await labFetch('/api/inspect',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({tool,upload:file})});
+  const response=await labFetch('/api/inspect',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({tool,upload:file}),signal:activeInspection.signal});
   const info=await response.json();if(!response.ok)throw new Error(info.error||'File could not be read.');
-  if(current!==tool||$('upload-file').files[0]!==chosen)return;uploadFile=file;uploadInfo=info;renderColumns();$('file-status').textContent=`${info.rows} rows · ${info.columns.length} columns. Choose the roles below, then run the tool.`;
- }catch(error){if(current===tool){uploadFile=null;uploadInfo=null;$('file-status').textContent=error.message||'File could not be read.';}}
- finally{if(current===tool)$('inspect-file').disabled=false;}
+  if(current!==tool||$('upload-file').files[0]!==chosen)return;uploadFile=file;uploadInfo=info;$('notice').textContent='';renderColumns();$('file-status').textContent=`${info.rows} rows · ${info.columns.length} columns. Choose the roles below, then run the tool.`;
+ }catch(error){if(current===tool){uploadFile=null;uploadInfo=null;$('data-preview').hidden=true;$('file-status').textContent=error.name==='AbortError'?'File preview cancelled.':error.message||'File could not be read.';}}
+ finally{if(current===tool&&controller===activeInspection){controller=null;$('inspect-file').disabled=false;$('cancel-run').hidden=true;if(uploadInfo)renderDataPreview();else $('run').disabled=true;}}
 });
 selectTool(new URLSearchParams(location.search).get('tool')||'missing');
